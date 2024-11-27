@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图书管理系统</title>
+    <link rel="stylesheet" href="/static/css/index.css">
+    <style>
+        /* 选项卡样式 */
+        .tabs {
+            display: flex;
+            cursor: pointer;
+            border-bottom: 2px solid #ccc;
+        }
+        .tab {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: #f1f1f1;
+        }
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <video src="/static/img/wallpaper.mp4" class="bjimg" autoplay loop muted></video>
+    <div class="header">
+        <h1>图书管理系统</h1>
+        <div class="auth-buttons">
+            <a href="/login/" class="login-link" id="loginLink">登录</a>
+            <span id="userGreeting" class="login-link" style="display:none;"></span>
+            <a href="/loginOut/" class="login-link2" id="logoutLink">登出</a>
+        </div>
+    </div>
+    <div class="navbar">
+        <!-- 修改为选项卡按钮 -->
+        <div class="tabs">
+            <div class="tab active" id="tab1" onclick="showTab('tab1')">首页</div>
+            <div class="tab" id="tab2" onclick="showTab('tab2')">图书管理</div>
+            <div class="tab" id="tab3" onclick="showTab('tab3')">借阅管理</div>
+            <div class="tab" id="tab4" onclick="showTab('tab4')">用户管理</div>
+        </div>
+    </div>
+
+    <!-- 可选择页面的内容部分 -->
+    <div class="container">
+        <!-- 首页内容 -->
+        <div class="tab-content active" id="content-tab1">
+            <h2>欢迎来到图书管理系统</h2>
+            <p>在这里，您可以浏览图书、借书并查看借阅记录。</p>
+        </div>
+
+        <!-- 图书管理内容 -->
+        <div class="tab-content" id="content-tab2">
+            <h2>图书管理</h2>
+            <div class="search">
+                <input type="text" placeholder="点击搜索查询书籍" id="searchInput"/>
+                <button onclick="searchBooks()" class="button">搜索</button>
+            </div>
+            <div class="overview">
+                <p>欢迎来图书馆借书</p>
+            </div>
+            <h3>图书列表</h3>
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>书名</th>
+                        <th>作者</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                </tbody>
+            </table>
+            <p id="resultDisplay" style="color: red;"></p>
+        </div>
+
+        <!-- 借阅管理内容 -->
+        <div class="tab-content" id="content-tab3">
+            <h2>借阅管理</h2>
+            <p>这里展示用户的借阅记录及借书管理。</p>
+            <!-- 你可以在这里展示借阅记录 -->
+        </div>
+
+        <!-- 用户管理内容 -->
+        <div class="tab-content" id="content-tab4">
+            <h2>用户管理</h2>
+            <p>这里展示用户的个人信息及管理选项。</p>
+            <!-- 你可以在这里展示用户管理的内容 -->
+        </div>
+    </div>
+
+    <script>
+        // 切换选项卡的函数
+        function showTab(tabId) {
+            const allTabs = document.querySelectorAll('.tab');
+            const allContents = document.querySelectorAll('.tab-content');
+
+            // 隐藏所有内容
+            allContents.forEach(content => content.classList.remove('active'));
+            allTabs.forEach(tab => tab.classList.remove('active'));
+
+            // 显示当前选中的选项卡内容
+            document.getElementById(`content-${tabId}`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        const user = "{{ user|default:'' }}";  // Django模板语法示例
+        if (user && user != "没有找到数据") {
+            // 如果用户已登录，隐藏登录链接，显示用户名和登出链接
+            document.getElementById('loginLink').style.display = 'none';
+            document.getElementById('logoutLink').style.display = 'inline-block';
+            document.getElementById('userGreeting').innerText = `你好，${user}`; // 显示用户名
+            document.getElementById('userGreeting').style.display = 'inline-block';
+        } else {
+            // 如果用户没有登录，显示登录链接
+            document.getElementById('loginLink').style.display = 'inline-block';
+        }
+
+        function searchBooks() {
+            const input = encodeURIComponent(document.getElementById('searchInput').value);
+            fetch(`/search_books/?query=${input}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const resultsTable = document.getElementById('resultsTable');
+                const resultsBody = document.getElementById('resultsBody');
+                const contentText = document.getElementById('resultDisplay');
+                resultsBody.innerHTML = '';
+                if (data.results && data.results.length > 0) {
+                    contentText.innerText = '';
+                    resultsTable.style.display = 'table';
+                    data.results.forEach(book => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${book.name}</td>
+                            <td>${book.author}</td>
+                            <td>
+                                <a class="button" href="/delete/${book.id}">借书</a>
+                            </td>`;
+                        resultsBody.appendChild(row);
+                    });
+                } else {
+                    contentText.innerText = '未找到相关图书';
+                    resultsTable.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('resultDisplay').innerText = '发生错误，请重试。';
+            });
+        }
+    </script>
+</body>
+</html>
