@@ -1,4 +1,4 @@
-from function.select.jdbc import execute_query, execute_query_with_params
+from function.utils.jdbc import execute_query, execute_query_with_params
 
 
 def findAllUser():

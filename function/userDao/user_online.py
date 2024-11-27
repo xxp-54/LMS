@@ -1,4 +1,4 @@
-from function.select.jdbc import execute_query_with_params
+from function.utils.jdbc import execute_query_with_params
 
 
 def user_Online(username):
@@ -30,4 +30,4 @@ def getOnline():
         return result[0][0]
     else:
         # 返回 None 表示没有数据
-        return None
+        return []

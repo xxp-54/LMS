@@ -1,142 +1,143 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图书管理系统</title>
-    <link rel="stylesheet" href="/static/css/index.css">
-
-</head>
-<style>.results-container {
-    max-height: 300px; /* 限制最大高度 */
-    overflow-y: auto; /* 添加垂直滚动条 */
-    border: 1px solid #ccc; /* 添加边框，方便查看 */
-    padding: 10px; /* 内边距美化 */
-    margin-top: 10px; /* 与其他内容保持间距 */
-    background-color: rgba(0, 0, 0, 0);
-
-}
-
-#resultsTable {
-    width: 100%; /* 让表格宽度自适应父容器 */
-    border-collapse: collapse; /* 美化表格 */
-}
-
-#resultsTable th, #resultsTable td {
-    padding: 8px;
-    text-align: left;
-    border-bottom: 1px solid #ddd; /* 表格分隔线 */
-}
-
-#resultsTable th {
-    background-color: #f4f4f4; /* 表头背景色 */
-}
-</style>
+<!DOCTYPE html>  
+<html lang="zh-CN">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>图书管理系统</title>  
+    <link rel="stylesheet" href="/static/css/index.css">  
+</head>  
 <body>
-    <video src="/static/img/wallpaper.mp4" class="bjimg" autoplay loop muted></video>
-    <div class="header">
-        <h1>图书管理系统</h1>
-        <div class="auth-buttons">
-            <a href="/login/" class="login-link" id="loginLink">登录</a>
-            <span id="userGreeting" class="login-link" style="display:none;"></span>
-            <a href="/loginOut/" class="login-link2" id="logoutLink">登出</a>
+    <header class="header">  
+        <h1>图书管理系统</h1>  
+        <div class="auth-buttons">  
+            <a href="/login/" class="auth-link" id="loginLink">登录</a>  
+            <span id="userGreeting" class="auth-link" style="display:none;"></span>  
+            <a href="/loginOut/" class="auth-link" id="logoutLink">登出</a>  
+        </div>  
+    </header>  
+    
+    <nav class="navbar">  
+        <a href=".">首页</a>  
+        <a href="#">图书管理</a>  
+        <a href="/borrow_List/">借阅管理</a>
+        <a href="#">用户管理</a>  
+    </nav>  
 
-<!--            <a href="http://localhost:8000/regist" class="auth-button">注册</a>-->
-
+    <main class="container">  
+        <div class="search">  
+            <input type="text" placeholder="搜索书籍" id="searchInput"/>  
+            <button class="button" onclick="searchBooks()">搜索</button>  
         </div>
-    </div>
-    <div class="navbar">
-        <a href=".">首页</a>
-        <a href="#">图书管理</a>
-        <a href="http://localhost:8000/borrow_return">借阅管理</a>
-        <a href="#">用户管理</a>
-    </div>
+        <h2>图书列表</h2>  
+        <div class="results-container">  
+            <table id="resultsTable">  
+                <thead>  
+                    <tr>  
+                        <th>书名</th>  
+                        <th>作者</th>  
+                        <th>操作</th>  
+                    </tr>  
+                </thead>  
+                <tbody id="resultsBody"></tbody>  
+            </table>  
+        </div>  
+        <p id="resultDisplay" style="color: red;"></p>  
+    </main>  
 
-    <div class="container">
-        <div class="search">
-            <input type="text" placeholder="点击搜索查询书籍" id="searchInput"/>
-            <button onclick="searchBooks()" class="button">搜索</button>
-        </div>
+    <script>  
+        const user = "{{ user|default:'' }}";  
+        if (user && user !== "没有找到数据") {  
+            document.getElementById('loginLink').style.display = 'none';  
+            document.getElementById('logoutLink').style.display = 'inline-block';  
+            document.getElementById('userGreeting').innerText = `你好，${user}`;  
+            document.getElementById('userGreeting').style.display = 'inline-block';  
+        } else {  
+            document.getElementById('loginLink').style.display = 'inline-block';  
+        }  
 
-        <div class="overview">
-            <p>欢迎来图书馆借书</p>
-        </div>
-
-        <h2>图书列表</h2>
-<div class="results-container">
-    <table id="resultsTable">
-        <thead>
-            <tr>
-                <th>书名</th>
-                <th>作者</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody id="resultsBody">
-        </tbody>
-    </table>
-</div>
-<p id="resultDisplay" style="color: red;"></p>
-
-    </div>
-<script>
-
-    const user = "{{ user|default:'' }}";// Django模板语法示例，其他框架类似
-            if (user&&user!="没有找到数据") {
-                // 如果用户已登录，隐藏登录链接，显示用户名和登出链接
-                document.getElementById('loginLink').style.display = 'none';
-                document.getElementById('logoutLink').style.display = 'inline-block';
-                document.getElementById('userGreeting').innerText = `你好，${user}`; // 显示用户名
-                document.getElementById('userGreeting').style.display = 'inline-block';
-            } else {
-                // 如果用户没有登录，显示登录链接
-                document.getElementById('loginLink').style.display = 'inline-block';
-            }
-
-    function searchBooks() {
-        const input = encodeURIComponent(document.getElementById('searchInput').value);
-        fetch(`/search_books/?query=${input}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            const resultsTable = document.getElementById('resultsTable');
+        async function searchBooks() {
+            const input = document.getElementById('searchInput').value;
             const resultsBody = document.getElementById('resultsBody');
             const contentText = document.getElementById('resultDisplay');
-            resultsBody.innerHTML = '';
-            if (data.results && data.results.length > 0) {
-                contentText.innerText = '';
-                resultsTable.style.display = 'table';
-                data.results.forEach(book => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${book.name}</td>
-                        <td>${book.author}</td>
-                        <td>
-                            <button class="button">借书</button>
-<!--                            <a class="button" href="/delete/${book.id}">借书</a>-->
-                        </td>`;
-                    resultsBody.appendChild(row);
+
+            resultsBody.innerHTML = '';  // 清空现有结果
+            contentText.innerText = '';  // 清空错误提示
+
+            try {
+                // 使用 POST 请求发送 JSON 数据
+                const response = await fetch('/search_books/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',  // 告诉服务器我们发送的是 JSON 数据
+                    },
+                    body: JSON.stringify({ name: input })  // 将输入的书名放入请求体
                 });
-            } else {
-                contentText.innerText = '未找到相关图书';
-                resultsTable.style.display = 'none';
+
+                // 检查请求是否成功
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                // 解析 JSON 数据
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    // 如果有搜索结果，填充结果表格
+                    data.results.forEach(book => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${book.name}</td>
+                            <td>${book.author}</td>
+                            <td><button class="button borrow-btn" data-name="${book.name}">借书</button></td>
+                        `;
+                        resultsBody.appendChild(row);
+                    });
+                } else {
+                    contentText.innerText = '未找到相关图书';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                contentText.innerText = '发生错误，请重试。';
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('resultDisplay').innerText = '发生错误，请重试。';
+        }
+
+        // 使用事件代理来绑定借书按钮点击事件
+        document.getElementById('resultsBody').addEventListener('click', (event) => {
+            if (event.target && event.target.classList.contains('borrow-btn')) {
+                borrowBook(event.target.dataset.name);  // 获取按钮的数据名称并调用借书函数
+            }
         });
-    }
 
-</script>
-</body>
+        function borrowBook(bookName) {
+            fetch('/borrow_book/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken() // 如果需要 CSRF 保护，添加此行
+                },
+                body: JSON.stringify({ name: bookName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message); // 提示成功信息
+                } else {
+                    alert(`借书失败: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('借书过程中发生错误，请重试。');
+            });
+        }
 
-
+        // 获取 CSRF Token 的函数
+        function getCSRFToken() {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken='))
+                ?.split('=')[1];
+            return cookieValue || '';
+        }
+    </script>  
+</body>  
 </html>

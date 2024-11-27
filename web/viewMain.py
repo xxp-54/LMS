@@ -20,8 +20,9 @@ def index(request):
 def login(request):
     return render(request,'login_new.html')
 
-def borrow_return(request):
-    return render(request,'borrow_return.html')
+def borrow_List(request):
+    user = getOnline()
+    return render(request, 'borrowList.html', {'user': user})
 
 def borrow(request):
     return render(request,'borrow.html')
