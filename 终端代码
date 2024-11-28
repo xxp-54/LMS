@@ -1,7 +1,0 @@
-运行DJANGO：python manage.py runserver
-创建APP：python manage.py startapp myapp
-创建DJANGO程序：django-admin startproject myproject
-迁移数据库：{python manage.py makemigrations,
-           python manage.py migrate  }
-
-
