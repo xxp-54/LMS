@@ -20,7 +20,7 @@ def UserLogin(request):
             if password == result[2]:
 
                 user = getOnline()
-                if user is None:
+                if user == []:
                     user_Online(username)
                     return JsonResponse({'success': True, 'message': '登录成功！'})
                 return JsonResponse({'success': False, 'message': '用户已经登录！'})
