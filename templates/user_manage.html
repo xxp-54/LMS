@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+      <link rel="stylesheet" href="/static/css/index.css">
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .sidebar {
+            width: 200px;
+            background-color: #f4f4f4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar a {
+            text-decoration: none;
+            color: #333;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .sidebar a:hover {
+            background-color: #ddd;
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f9f9f9;
+        }
+
+        .button {
+            padding: 5px 10px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .edit-btn {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .edit-btn:hover {
+            background-color: #e0a800;
+        }
+        .sidebar a.active {
+            background-color: #007BFF; /* 当前页面的链接背景颜色 */
+            color: white; /* 当前页面的文字颜色 */
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="/">首页</a>
+        <a href="/">图书管理</a>
+        <a href="/borrow_List/">借阅管理</a>
+        <a href="." class = "active">用户管理</a>
+    </div>
+
+    <div class="content">
+        <header class="header">
+            <h1>用户管理</h1>
+            <div class="auth-buttons">
+                <span id="userGreeting" class="auth-link"></span>
+                <a href="/loginOut/" class="auth-link" id="logoutLink">登出</a>
+            </div>
+        </header>
+
+        <main>
+            <h2>用户列表</h2>
+            <div class="user-list">
+                <table id="userTable">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <!-- 用户列表将插入到这里 -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script defer>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 模拟用户信息
+            const user = "{{ user|default:'' }}";
+
+            // 初始化页面内容
+            if (user && user !== "没有找到数据") {
+                document.getElementById('userGreeting').innerText = `你好，${user}`;
+                document.getElementById('logoutLink').style.display = 'inline-block';
+            }
+
+            loadUsers();
+
+            // 加载用户数据
+            async function loadUsers() {
+                const tableBody = document.getElementById('userTableBody');
+                tableBody.innerHTML = ''; // 清空表格内容
+
+                try {
+                    const response = await fetch('/existing_users/');
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误，状态码：${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.users && data.users.length > 0) {
+                        data.users.forEach(user => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${user.user_name}</td>
+                                <td>
+                                    <button class="button delete-btn" data-id="${user.user_name}">删除</button>
+                                </td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    } else {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td colspan="2" style="text-align:center;">暂无用户</td>`;
+                        tableBody.appendChild(row);
+                    }
+                } catch (error) {
+                    console.error('加载用户数据时出错:', error);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td colspan="2" style="text-align:center;">加载用户数据失败，请稍后再试</td>`;
+                    tableBody.appendChild(row);
+                }
+            }
+
+            // 用户操作事件监听
+            document.getElementById('userTableBody').addEventListener('click', async (event) => {
+                if (event.target) {
+                    const userId = event.target.dataset.id;
+                    if (event.target.classList.contains('delete-btn')) {
+                        await deleteUser(userId);
+                    } else if (event.target.classList.contains('edit-btn')) {
+                        alert(`编辑用户功能：用户ID ${userId}`); // 这里可以跳转到编辑页面
+                    }
+                }
+            });
+
+            // 删除用户函数
+            async function deleteUser(user_name) {
+                if (!confirm('确定要删除该用户吗？')) return;
+
+                try {
+                    const response = await fetch(`/delete_user/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCSRFToken()
+                        },
+                        body: JSON.stringify({ username: user_name })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误，状态码：${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        alert('用户删除成功');
+                        loadUsers(); // 重新加载用户列表
+                    } else {
+                        alert(`删除失败: ${data.message}`);
+                    }
+                } catch (error) {
+                    console.error('删除用户时出错:', error);
+                    alert('删除用户失败，请稍后再试');
+                }
+            }
+
+            // 获取 CSRF Token
+            function getCSRFToken() {
+                const cookieValue = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('csrftoken='))
+                    ?.split('=')[1];
+                return cookieValue || '';
+            }
+        });
+    </script>
+</body>
+</html>
